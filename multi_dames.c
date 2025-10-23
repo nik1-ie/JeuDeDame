@@ -1,5 +1,10 @@
 #include <stdio.h>
 
+// Définitions de codes ANSI pour les couleurs
+#define RESET   "\033[0m"
+#define RED     "\033[31m"
+#define WHITE   "\033[37m"
+
 #define TAILLE 8
 typedef struct {
     // 0 si vide, 1 si blanc, 2 si rouge et 3 si noir
@@ -21,6 +26,7 @@ typedef struct {
     int pion_est_saisi; // 1 si un pion est saisi, 0 sinon
     int pion_i, pion_j; // la ligne et colonne du pion saisi (0 sinon)
 } Jeu;
+
 
 void affiche(int plateau){
     // Fonction qui va afficher le plateau de façon lisible sur un terminal
