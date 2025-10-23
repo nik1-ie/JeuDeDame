@@ -28,11 +28,60 @@ typedef struct {
 } Jeu;
 
 
-void affiche(int plateau){
-    // Fonction qui va afficher le plateau de façon lisible sur un terminal
-    return;
+int jeu_capturer(Jeu *jeu, int i, int j){
+    // le joueur courant capture la pièce se trouvant à la ligne i et la colonne j (numéroté entre 0 et 7) 
+    // (par exemple lors du premier tour de jeu ou lors d’un saut)
 }
 
-int main(){
+int jeu_saisir_pion(Jeu *jeu, int i, int j){
+    // utilisée en début de tour pour saisir le pion permettant de faire des saut (par le joueur courant)
+}
+
+int jeu_sauter_vers(Jeu *jeu, int i, int j){
+    // fait sauter le pion saisi vers la case (vide) en position (i,j)
+    // en capturant le pion entre les deux positions au passage
+}
+
+int jeu_arreter(Jeu *jeu){
+    // utilisée en début de tour pour arrêter de jouer (tant que le joueur courant n’est pas le dernier joueur)
+}
+
+int jeu_joueur_suivant(Jeu *jeu){
+    // passe au joueur suivant
+}
+
+void jeu_charger(Jeu *jeu){
+    // fonctions pour les tests présentés dans la section suivante
+}
+
+void jeu_ecrire(Jeu *jeu){
+    // fonctions pour les tests présentés dans la section suivante
+}
+
+int plateau_pion_peut_sauter(Plateau *plateau, int i, int j){
+    // pour vérifier si un pion peut sauter.
+}
+
+int case_est_valide(int i, int j){
+    // pour vérfier si une position désigne un case dans le plateau et non à l’extérieur
+}
+
+void jeu_afficher(Jeu *jeu){
+    // pour afficher le plateau à l’utilisateur
+}
+
+void jeu_table_flip(Jeu *jeu){
+    // pour que le joueur courant puisse faire un table flip
+}
+
+int main(void){
+    Jeu jeu;
+    int i,j;
+    jeu_charger(&jeu);
+    scanf("%d%d", &i, &j);
+    if (!jeu_sauter_vers(&jeu, i, j)){
+        printf("Actionimpossible\n");
+    }
+    jeu_ecrire(&jeu);
     return 0;
 }
