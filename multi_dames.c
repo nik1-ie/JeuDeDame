@@ -4,7 +4,7 @@
 #define RESET   "\033[0m"
 #define RED     "\033[31m"
 #define WHITE   "\033[37m"
-#define GREY "\033[90m"
+#define BLACK   "\033[90m"
 
 #define TAILLE 8
 typedef struct {
@@ -29,39 +29,40 @@ typedef struct {
 } Jeu;
 
 // Fonction affichant le plateau à l’utilisateur. arg(Jeu * jeu) : pointeur vers la structure Jeu à afficher.
-// (Selection d'un pion à ajouter.)
+// (Selection d'un pion à tester)
 void jeu_afficher(Jeu * jeu){
     Plateau * pl = &(jeu->plateau);
+    printf("  ");
     for(int i = 0; i < TAILLE; i++){
-        printf("  %d", i);
+        printf(" %d ", i);
+    };
+    printf("\n  ");
+    for(int i = 0; i < TAILLE; i++){
+        printf(" _ ");
     };
     printf("\n");
-    for(int i = 0; i < TAILLE; i++){
-        printf("  _");
-    };
-    printf("\n");
-    for(int j = 0; j < TAILLE; j++){
-        printf("%d", j+1);
-        for(int k = 0; k < TAILLE; k++){
-            if (pl->pion[j][k] == 0){
-                printf("  .");
-            }
-            else if (pl->pion[j][k] == 1){
-                printf(WHITE "  +" RESET);
-            }
-            else if (pl->pion[j][k] == 2){
-                printf(RED "  +" RESET);
-            }
-            else if (pl->pion[j][k] == 3){
-                printf(GREY "  +" RESET);
+    for (int i = 0; i < TAILLE; i++) {
+        printf("%d |", i);
+        for (int j = 0; j < TAILLE; j++) {
+            switch (pl->pion[i][j]) {
+                switch (i = jeu->pion_i, j = jeu->pion_j, jeu->pion_est_saisi){
+                    case 1: printf(WHITE "[o]" RESET); break;
+                    case 2: printf(RED "[x]" RESET); break;
+                    case 3: printf(BLACK "[+]" RESET); break;
+                }
+                case 0: printf(" . "); break;
+                case 1: printf(WHITE " o " RESET); break;
+                case 2: printf(RED " x " RESET); break;
+                case 3: printf(BLACK " + " RESET); break;
             }
         }
         printf("\n");
     }
+    return;
 }
 
 // Fonction d'initialisation du plateau : arg(Jeu * jeu) : pointeur vers la structure Jeu à initialiser 
-// (Attention : ne fonctionne qu'avec les plateaux 8x8 pour le moment.)
+// (Attention : ne fonctionne qu'avec les plateaux 8x8 pour le moment. La disposition des pions est aléatoire - à modifier.)
 void initialiser_plateau(Jeu * jeu){
     Plateau * plateau = &(jeu->plateau);
     if (TAILLE == 8){ 
@@ -100,9 +101,31 @@ void intialiser_partie(Jeu * jeu){
     } while(jeu->nb_joueurs < 1 || jeu->nb_joueurs > MAX_JOUEURS);
 
     // Création de x joueurs, init de leur état
-
+    switch (jeu->nb_joueurs){
+        case 1:
+            jeu->joueur[0].etat = 1;
+            break;
+        case 2:
+            jeu->joueur[0].etat = 1;
+            jeu->joueur[1].etat = 1;
+            break;
+        case 3:
+            jeu->joueur[0].etat = 1;
+            jeu->joueur[1].etat = 1;
+            jeu->joueur[2].etat = 1;
+            break;
+        case 4:
+            jeu->joueur[0].etat = 1;
+            jeu->joueur[1].etat = 1;
+            jeu->joueur[2].etat = 1;
+            jeu->joueur[3].etat = 1;
+            break;
+    } // c'est un peu long, mais bon...
+    jeu->joueur_courant = 0;
+    jeu->tour = 1;
     // init plateau, lancement jeu ??
-    initialiser_plateau(&(jeu->plateau));
+    initialiser_plateau(jeu);
+    printf("Initialisation terminée. Bienvenue aux %d joueurs.", jeu->nb_joueurs);
     return;
 }
 
@@ -124,8 +147,16 @@ int jeu_arreter(Jeu *jeu){
     // utilisée en début de tour pour arrêter de jouer (tant que le joueur courant n’est pas le dernier joueur)
 }
 
+// Passe au joueur suivant.
+// (Fonctionnelle en théorie.)
 int jeu_joueur_suivant(Jeu *jeu){
-    // passe au joueur suivant
+    if (jeu->joueur_courant < jeu->nb_joueurs){
+        jeu->joueur_courant += 1;
+    };
+    if (jeu->joueur_courant == jeu->nb_joueurs){
+        jeu->joueur_courant = 0;
+    }
+    jeu->tour += 1;
 }
 
 void jeu_charger(Jeu *jeu){
@@ -148,9 +179,10 @@ int case_est_valide(int i, int j){
 int main(void){
     Jeu jeu;
     intialiser_partie(&jeu);
+    int i,j; //i et j stockent les coordonnées saisies par l'utilisateur
     return 0;
-    // int i,j;
-    // jeu_charger(&jeu);
+
+
     // scanf("%d%d", &i, &j);
     // if (!jeu_sauter_vers(&jeu, i, j)){
     //     printf("Actionimpossible\n");
