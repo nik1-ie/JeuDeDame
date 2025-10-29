@@ -145,7 +145,7 @@ void intialiser_partie(Jeu * jeu){
 
 // ----- Fonctions de jeu, partie
 
-// Fonction vérfiant si une position désigne un case dans le plateau et non à l’extérieur
+// Fonction vérfiant si une position désigne une case dans le plateau et non à l’extérieur
 int case_est_valide(int i, int j){
     if (i >= 0 && i < TAILLE && j >= 0 && j < TAILLE){
         return 1;
@@ -158,7 +158,7 @@ int case_est_valide(int i, int j){
 // arg(Jeu * jeu) : pointeur vers la structure Jeu
 // Return 1 si le joueur courant arrête de jouer, 0 sinon. - Fonctionnelle en théorie
 int jeu_arreter(Jeu *jeu){
-    int players = jeu->joueur;
+    Joueur * players = jeu->joueur;
     int count = 0;
     for (int i = 0; i < MAX_JOUEURS; i++){
         if (players[i].etat == 1){
@@ -229,28 +229,64 @@ int jeu_capturer(Jeu *jeu, int i, int j){
     return 0;
 }
 
-int options_sauts(Jeu * jeu, int i, int j){
-    
-    // grosse boucle pour trouver les options
-    return;
-}
 
 // Trouve toutes les positions possibles. S'il y en a qu'une seule, sauter automatiquement.
 // Sinon, offrir le choix au joueur courant.
-int jeu_sauter_vers(Jeu *jeu, int i, int j){
+int options_sauts(Jeu *jeu, int i, int j){
     int count = 0;
     int options[TAILLE][2];
+    int ic, jc;
+    Plateau * pl = &(jeu->plateau);
 
-
-    printf("Options de saut trouvées : \n");
-    for (int n = 0; n < count; n++){
-        printf("Option %d : (%d,%d) \n", n+1, options[n][0], options[n][1]);
+    for (int di = -2; di <= 2; di += 4){
+        for (int dj = -2; dj <= 2; dj += 4){
+            int ni = i + di;
+            int nj = j + dj;
+            if (case_est_valide(ni, nj) && pl->pion[ni][nj] == 0){
+                printf("Option de saut trouvée vers (%d,%d) \n", ni, nj);
+                options[count][0] = ni;
+                options[count][1] = nj;
+                count += 1;
+            }
+        }
     }
-    int choice;
-    scanf("Sélectionnez une option de saut (numéro) : ", &choice);
-    // grosse boucle pour déterminer les pions capturés
+    switch(count){
+        case 0:
+            printf("Aucune option de saut disponible pour le pion (%d,%d) ! \n", i, j);
+            return -1;
+        case 1:
+            printf("Une seule option de saut disponible. Saut automatique vers (%d,%d) \n", options[0][0], options[0][1]);
+            ic = options[0][0];
+            jc = options[0][1];
+        default:
+            printf("%d options de saut trouvées : \n", count);
+            for (int n = 0; n < count; n++){
+                printf("Option %d : (%d,%d) \n", n+1, options[n][0], options[n][1]);
+            }
+            int choice;
+            scanf("Sélectionnez une option de saut (numéro) : %d", &choice);
+            ic = options[choice-1][0];
+            jc = options[choice-1][1]; // coordonnées du pion choisi
+            printf("Vous avez choisi de sauter vers (%d,%d) \n", &ic, &jc);
 
-    int ic, jc; // coordonnées du pion choisi
+        }
+    int coords[2] = {ic, jc};
+    // return coords; mieux return les coordsd choisies
+}
+
+int jeu_sauter_vers(Jeu * jeu, int i, int j){
+    Plateau * pl = &(jeu->plateau);
+    if (options_sauts(jeu, i, j) == -1){
+        return 0; // Pas de saut possible
+    }
+    // int coords[2] = options_sauts(jeu, i, j); MIEUX RECUPERER LES COORDONNES CHOISIES
+    int temp = pl->pion[i][j];
+    pl->pion[i][j] = 0; 
+    pl->pion[coords[0]][coords[1]] = temp;
+    int pions_manges[TAILLE][2];
+    // Vérification des pions mangés entre (i,j) et (coords[0], coords[1])
+    for (int k = 0; k < TAILLE; k++)
+    
     jeu_joueur_suivant(jeu);
 }
 
