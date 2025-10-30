@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
 
 // ----- Définitions de codes ANSI pour les couleurs
 #define RESET   "\033[0m"
@@ -76,30 +79,39 @@ void jeu_afficher(Jeu * jeu){
 
 // Fonction d'initialisation du plateau : arg(Jeu * jeu) : pointeur vers la structure Jeu à initialiser 
 // (Attention : ne fonctionne qu'avec les plateaux 8x8 pour le moment. La disposition des pions est aléatoire - à modifier.)
-void initialiser_plateau(Jeu * jeu){
-    Plateau * plateau = &(jeu->plateau);
-    if (TAILLE == 8){ 
-        int tmp[8][8] = {
-            {1, 1, 1, 1, 1, 1, 1, 1},      // 8 blancs (total: 8)
-            {1, 1, 1, 1, 1, 1, 1, 1},      // 8 blancs (total: 16)
-            {1, 1, 1, 1, 1, 1, 1, 1},      // 8 blancs (total: 24)
-            {1, 1, 1, 1, 1, 1, 1, 1},      // 8 blancs (total: 32)
-            {1, 1, 2, 2, 2, 2, 2, 2},      // 2 blancs (total: 34), 6 rouges (total: 6)
-            {2, 2, 2, 2, 2, 2, 2, 2},      // 8 rouges (total: 14)
-            {2, 2, 3, 3, 3, 3, 3, 3},      // 2 rouges (total: 16), 6 noirs (total: 6)
-            {3, 3, 3, 3, 0, 0, 0, 0}       // 4 noirs (total: 10), 4 vides
-        };
+// void initialiser_plateau(Jeu * jeu){
+//     Plateau * plateau = &(jeu->plateau);
+// J'ai changé l'argument parce que de toute façon on appelle plateau après
+void initialiser_plateau(Plateau *plateau) {
+    int blancs = 34;
+    int rouges = 20;
+    int noirs = 10;
 
-        for (int i = 0; i < 8; i++)
-            for (int j = 0; j < 8; j++)
-                plateau->pion[i][j] = tmp[i][j];
+    srand(time(NULL)); // (TP 4) assure que le mélange est différent à chaque exécution
+    for (int i = 0; i < TAILLE; i++) {
+        for (int j = 0; j < TAILLE; j++) {
+            int total = blancs + rouges + noirs;
+            int r = rand() % total;
+            if (r < noirs) {
+                plateau->pion[i][j] = 3;
+                noirs--;
+            } else if (r < noirs + rouges) {
+                plateau->pion[i][j] = 2;
+                rouges--;
+            } else {
+                plateau->pion[i][j] = 1;
+                blancs--;
+            }
+        }
     }
-    jeu_afficher(jeu);
-    return;
 }
 
 // Fonction d'initialisation de la partie : arg(Jeu * jeu) : pointeur vers la structure Jeu à initialiser
 void intialiser_partie(Jeu * jeu){
+    jeu->joueur_courant = 0;
+    jeu->tour = 1;
+    jeu->pion_est_saisi = 0;
+    jeu->pion_i = jeu->pion_j = 0;
     printf("Bienvenue dans le " RED "Jeu de Dame!" RESET);
 
     // Définition du nombre de joueurs;
@@ -113,32 +125,12 @@ void intialiser_partie(Jeu * jeu){
         }
     } while(jeu->nb_joueurs < 1 || jeu->nb_joueurs > MAX_JOUEURS);
 
-    // Création de x joueurs, init de leur état
-    switch (jeu->nb_joueurs){
-        case 1:
-            jeu->joueur[0].etat = 1;
-            break;
-        case 2:
-            jeu->joueur[0].etat = 1;
-            jeu->joueur[1].etat = 1;
-            break;
-        case 3:
-            jeu->joueur[0].etat = 1;
-            jeu->joueur[1].etat = 1;
-            jeu->joueur[2].etat = 1;
-            break;
-        case 4:
-            jeu->joueur[0].etat = 1;
-            jeu->joueur[1].etat = 1;
-            jeu->joueur[2].etat = 1;
-            jeu->joueur[3].etat = 1;
-            break;
-    } // c'est un peu long, mais bon...
-    jeu->joueur_courant = 0;
-    jeu->tour = 1;
-    jeu->statut = 1;
+    for (int i = 0; i < MAX_JOUEURS; i++) {
+        jeu->joueur[i].etat = (i < jeu->nb_joueurs) ? 1 : 0;
+        jeu->joueur[i].score = 0;
+    }
     // init plateau, lancement jeu ??
-    initialiser_plateau(jeu);
+    initialiser_plateau(&jeu->plateau);
     printf("Initialisation terminée. Bienvenue aux %d joueurs. \n", jeu->nb_joueurs);
     return;
 }
@@ -146,12 +138,8 @@ void intialiser_partie(Jeu * jeu){
 // ----- Fonctions de jeu, partie
 
 // Fonction vérfiant si une position désigne une case dans le plateau et non à l’extérieur
-int case_est_valide(int i, int j){
-    if (i >= 0 && i < TAILLE && j >= 0 && j < TAILLE){
-        return 1;
-    } else {
-        return 0;
-    }
+int case_est_valide(int i, int j) {
+    return i >= 0 && i < TAILLE && j >= 0 && j < TAILLE;
 }
 
 // Utilisée en début de tour pour arrêter de jouer (tant que le joueur courant n’est pas le dernier joueur)
@@ -229,65 +217,93 @@ int jeu_capturer(Jeu *jeu, int i, int j){
     return 0;
 }
 
+int jeu_sauter_vers(Jeu * jeu, int i, int j){
+    if (!jeu->pion_est_saisi || !case_est_valide(i, j) || jeu->plateau.pion[i][j] != 0) {
+        return 0;
+    }
+
+    int di = i - jeu->pion_i;
+    int dj = j - jeu->pion_j;
+
+    // vérifier si le mouvement est un saut valide (distance de 2)
+    if (abs(di) != 2 && abs(dj) != 2) {
+        return 0;
+    }
+
+    // calculer la position du pion sauté
+    int saut_i = jeu->pion_i + di/2;
+    int saut_j = jeu->pion_j + dj/2;
+
+    if (!case_est_valide(saut_i, saut_j) || jeu->plateau.pion[saut_i][saut_j] == 0) {
+        return 0;
+    }
+
+    // capturer le pion sauté
+    jeu_capturer(jeu, saut_i, saut_j);
+
+    // déplacer le pion
+    jeu->plateau.pion[i][j] = jeu->plateau.pion[jeu->pion_i][jeu->pion_j];
+    jeu->plateau.pion[jeu->pion_i][jeu->pion_j] = 0;
+
+    // mettre à jour la position du pion saisi
+    jeu->pion_i = i;
+    jeu->pion_j = j;
+
+    return 1;
+}
+
+
+// pour vérifier si un pion peut sauter.
+int plateau_pion_peut_sauter(Plateau *plateau, int i, int j){
+    if (!case_est_valide(i,j) || plateau->pion[i][j] == 0){
+        return 0; // Si la case n'est même pas dans le plateau ou si elle est vide, return 0 directement.
+    }
+    // Vérifier toutes les directions possibles 
+    int directions[][2] = {{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}};
+    for (int d = 0; d < 8; d++) {
+        int di = directions[d][0], dj = directions[d][1];
+        // Vérifier si la case de destination est valide et vide
+        int dest_i = i + 2 * di;
+        int dest_j = j + 2 * dj;
+        if (case_est_valide(dest_i, dest_j) && plateau->pion[dest_i][dest_j] == 0) {
+            // Vérifier s'il y a un pion à sauter
+            int saut_i = i + di;
+            int saut_j = j + dj;
+            if (plateau->pion[saut_i][saut_j] != 0) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
 
 // Trouve toutes les positions possibles. S'il y en a qu'une seule, sauter automatiquement.
 // Sinon, offrir le choix au joueur courant.
-int options_sauts(Jeu *jeu, int i, int j){
-    int count = 0;
-    int options[TAILLE][2];
-    int ic, jc;
-    Plateau * pl = &(jeu->plateau);
-
-    for (int di = -2; di <= 2; di += 4){
-        for (int dj = -2; dj <= 2; dj += 4){
-            int ni = i + di;
-            int nj = j + dj;
-            if (case_est_valide(ni, nj) && pl->pion[ni][nj] == 0){
-                printf("Option de saut trouvée vers (%d,%d) \n", ni, nj);
-                options[count][0] = ni;
-                options[count][1] = nj;
-                count += 1;
+int options_sauts(Jeu *jeu, int li, int colonne){
+        while (plateau_pion_peut_sauter(&jeu->plateau, jeu->pion_i, jeu->pion_j)) {
+            jeu_afficher(jeu);
+            printf("Sauts possibles :\n");
+            // Afficher les sauts possibles
+            for (int i = 0; i < TAILLE; i++) {
+                for (int j = 0; j < TAILLE; j++) {
+                    if (abs(i - jeu->pion_i) <= 2 && abs(j - jeu->pion_j) <= 2) {
+                        int di = i - jeu->pion_i;
+                        int dj = j - jeu->pion_j;
+                        if ((abs(di) == 2 || abs(dj) == 2) && 
+                            jeu->plateau.pion[i][j] == 0 && 
+                            jeu->plateau.pion[jeu->pion_i + di/2][jeu->pion_j + dj/2] != 0) {
+                            printf("%d %d, ", i + 1, j + 1);
+                        }
+                    }
+                }
+            }
+            printf("\nEntrer un saut: ");
+            scanf("%d %d", &li, &colonne);
+            li--; colonne--;
+            if (!jeu_sauter_vers(jeu, li, colonne)) {
+                printf("Saut invalide !\n");
             }
         }
-    }
-    switch(count){
-        case 0:
-            printf("Aucune option de saut disponible pour le pion (%d,%d) ! \n", i, j);
-            return -1;
-        case 1:
-            printf("Une seule option de saut disponible. Saut automatique vers (%d,%d) \n", options[0][0], options[0][1]);
-            ic = options[0][0];
-            jc = options[0][1];
-        default:
-            printf("%d options de saut trouvées : \n", count);
-            for (int n = 0; n < count; n++){
-                printf("Option %d : (%d,%d) \n", n+1, options[n][0], options[n][1]);
-            }
-            int choice;
-            scanf("Sélectionnez une option de saut (numéro) : %d", &choice);
-            ic = options[choice-1][0];
-            jc = options[choice-1][1]; // coordonnées du pion choisi
-            printf("Vous avez choisi de sauter vers (%d,%d) \n", &ic, &jc);
-
-        }
-    int coords[2] = {ic, jc};
-    // return coords; mieux return les coordsd choisies
-}
-
-int jeu_sauter_vers(Jeu * jeu, int i, int j){
-    Plateau * pl = &(jeu->plateau);
-    if (options_sauts(jeu, i, j) == -1){
-        return 0; // Pas de saut possible
-    }
-    // int coords[2] = options_sauts(jeu, i, j); MIEUX RECUPERER LES COORDONNES CHOISIES
-    int temp = pl->pion[i][j];
-    pl->pion[i][j] = 0; 
-    pl->pion[coords[0]][coords[1]] = temp;
-    int pions_manges[TAILLE][2];
-    // Vérification des pions mangés entre (i,j) et (coords[0], coords[1])
-    for (int k = 0; k < TAILLE; k++)
-    
-    jeu_joueur_suivant(jeu);
 }
 
 // utilisée en début de tour pour saisir le pion permettant de faire des saut (par le joueur courant)
@@ -302,14 +318,6 @@ int jeu_saisir_pion(Jeu *jeu, int i, int j){
     jeu->pion_j = j;
     jeu_afficher(jeu);
     jeu_sauter_vers(jeu, i, j);
-}
-
-// pour vérifier si un pion peut sauter.
-int plateau_pion_peut_sauter(Plateau *plateau, int i, int j){
-    if (!case_est_valide(i,j)){
-        return 0; // Si la case n'est même pas dans le plateau, return 0 directement.
-    }
-    // Vérification des cases possibles,, ?
 }
 
 // ----- Fonctions de sauvegarde et chargement (Tests Platon)
