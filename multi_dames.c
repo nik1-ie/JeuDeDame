@@ -46,11 +46,11 @@ void jeu_afficher(Jeu * jeu){
     printf("\nTour n° %d - Joueur %d \n", jeu->tour, jeu->joueur_courant + 1);
 
     Plateau * pl = &(jeu->plateau);
-    printf("  ");
+    printf("   ");
     for(int i = 0; i < TAILLE; i++){
         printf(" %d ", i);
     };
-    printf("\n  ");
+    printf("\n   ");
     for(int i = 0; i < TAILLE; i++){
         printf(" _ ");
     };
@@ -101,7 +101,8 @@ int plateau_pion_peut_sauter(Plateau *plateau, int i, int j){
     if (!case_est_valide(i,j) || plateau->pion[i][j] == 0){
         return 0; // Si la case n'est même pas dans le plateau ou si elle est vide, return 0 directement.
     }
-    // Vérifier toutes les directions possibles 
+    // Vérifier toutes les directions possibles
+    // uniquement les sauts où la distance est de +/-2
     int directions[][2] = {{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}};
     for (int d = 0; d < 8; d++) {
         int di = directions[d][0], dj = directions[d][1];
@@ -156,8 +157,11 @@ int jeu_sauter_vers(Jeu * jeu, int i, int j){
     int di = i - jeu->pion_i;
     int dj = j - jeu->pion_j;
 
-    // vérifier si le mouvement est un saut valide (distance de 2)
-    if (abs(di) != 2 && abs(dj) != 2) {
+    // Vérifier si le mouvement est un saut valide (distance de 2)
+    // Autoriser uniquement les sauts où la distance est de +/-2
+    int adi = abs(di);
+    int adj = abs(dj);
+    if (!((adi == 2 && (adj == 0 || adj == 2)) || (adj == 2 && adi == 0))) {
         return 0;
     }
 
@@ -189,12 +193,13 @@ int jeu_sauter_vers(Jeu * jeu, int i, int j){
 // arg(Jeu * jeu) : pointeur vers la structure Jeu
 // Return 1 si le pion est saisi, 0 sinon
 int jeu_saisir_pion(Jeu *jeu, int i, int j){
-    printf("Joueur %d ! Sélectionnez un pion à saisir (ligne colonne) : ", jeu->joueur_courant +1);
-    while (scanf("%d %d", &i, &j) != 2) {
-        if (!case_est_valide(i, j)){
-            break;
-        }
-    } 
+    printf("Joueur %d, choisissez un pion (ligne colonne) : ", jeu->joueur_courant + 1);
+    scanf("%d %d", &i, &j);
+    do {
+        printf("Position invalide. Choisissez un autre pion (ligne colonne) : ");
+        scanf("%d %d", &i, &j);
+    } while (jeu->tour > 1 && !plateau_pion_peut_sauter(&jeu->plateau, i, j));
+    
     printf("Vous avez saisi le pion (%d,%d) \n", i, j);
     jeu->pion_est_saisi = 1;
     jeu->pion_i = i;
@@ -206,11 +211,15 @@ int jeu_saisir_pion(Jeu *jeu, int i, int j){
 
 // Trouve toutes les positions possibles. S'il y en a qu'une seule, sauter automatiquement.
 // Sinon, offrir le choix au joueur courant.
-int options_sauts(Jeu *jeu, int li, int colonne){
+int gestion_sauts(Jeu *jeu, int li, int colonne){
     while (plateau_pion_peut_sauter(&jeu->plateau, jeu->pion_i, jeu->pion_j)) {
         jeu_afficher(jeu);
-        printf("Sauts possibles :\n");
-        // Afficher les sauts possibles
+        printf("Sauts possibles : ");
+        
+        // Trouver tous les sauts possibles
+        int nb_sauts = 0;
+        int saut_auto_i = -1, saut_auto_j = -1;
+
         for (int i = 0; i < TAILLE; i++) {
             for (int j = 0; j < TAILLE; j++) {
                 if (abs(i - jeu->pion_i) <= 2 && abs(j - jeu->pion_j) <= 2) {
@@ -219,16 +228,25 @@ int options_sauts(Jeu *jeu, int li, int colonne){
                     if ((abs(di) == 2 || abs(dj) == 2) && 
                         jeu->plateau.pion[i][j] == 0 && 
                         jeu->plateau.pion[jeu->pion_i + di/2][jeu->pion_j + dj/2] != 0) {
-                        printf("%d %d, ", i + 1, j + 1);
+                        printf("%d %d, ", i, j);
+                        nb_sauts++;
+                        saut_auto_i = i;
+                        saut_auto_j = j;
                     }
                 }
             }
         }
-        printf("\nEntrer un saut: ");
-        scanf("%d %d", &li, &colonne);
-        li--; colonne--;
-        if (!jeu_sauter_vers(jeu, li, colonne)) {
-            printf("Saut invalide !\n");
+        
+        // Si un seul saut possible, l'effectuer automatiquement
+        if (nb_sauts == 1) {
+            printf("\nSaut automatique vers %d %d\n", saut_auto_i, saut_auto_j);
+            jeu_sauter_vers(jeu, saut_auto_i, saut_auto_j);
+        } else {
+            printf("\nEntrer un saut: ");
+            scanf("%d %d", &li, &colonne);
+            if (!jeu_sauter_vers(jeu, li, colonne)) {
+                printf("Saut invalide !\n");
+            }
         }
     }
 }
