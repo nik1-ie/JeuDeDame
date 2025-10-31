@@ -395,34 +395,42 @@ int endgame(Jeu * jeu){
     return 0;
 }
 
-
-int main(void){
-    Jeu jeu;
-    intialiser_partie(&jeu);
+int phase_initiale(Jeu * jeu){
     int i,j; //i et j stockent les coordonnées saisies par l'utilisateur
 
     // Phase initiale : chaque joueur retire un pion blanc et l'ajoute à son score.
     printf("Phase initiale...");
-    for (int p = 0; p < jeu.nb_joueurs; p++) {
-        jeu.joueur_courant = p;
+    for (int p = 0; p < jeu->nb_joueurs; p++) {
+        jeu->joueur_courant = p;
         jeu_afficher(&jeu);
 
         int li, colonne;
         printf("Joueur %d, choisissez un pion blanc à retirer (ligne colonne) : ", p + 1);
         while (scanf("%d %d", &li, &colonne) == 2) { // l'utilisateur a bien saisi deux entiers
 
-            if (case_est_valide(li, colonne) && jeu.plateau.pion[li][colonne] == 1) {
+            if (case_est_valide(li, colonne) && jeu->plateau.pion[li][colonne] == 1) {
                 jeu_capturer(&jeu, li, colonne);
                 break;
             }
             printf("Position invalide. Choisissez un pion blanc (ligne colonne) : ");
         }
     } 
-
+    
     // Vérification du score après la phase initiale
     // for (int p = 0; p < jeu.nb_joueurs; p++) {
     //     printf("Joueur %d : %d points\n", p + 1, jeu.joueur[p].score);
     // } C'est bon !
+}
+
+int main(void){
+    Jeu jeu;
+    int i, j;
+    jeu_charger(&jeu);
+    if jeu->tour <= 1 {
+        intialiser_partie(&jeu);
+        phase_initiale(&jeu);
+    }
+
 
     // Après que tous les joueurs ont retiré leur pion blanc, on passe au tour 2
     printf("Phase initiale terminée. Que la partie commence ! \n");
