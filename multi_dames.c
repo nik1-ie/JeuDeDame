@@ -103,7 +103,6 @@ int plateau_pion_peut_sauter(Plateau *plateau, int i, int j){
     }
     // Vérifier toutes les directions possibles
     // uniquement les sauts où la distance est de +/-2
-    // (horizontal: (±2,0), vertical: (0,±2), diagonal: (±2,±2)).
     int directions[][2] = {{-1,-1}, {-1,0}, {-1,1}, {0,-1}, {0,1}, {1,-1}, {1,0}, {1,1}};
     for (int d = 0; d < 8; d++) {
         int di = directions[d][0], dj = directions[d][1];
