@@ -79,6 +79,14 @@ void jeu_afficher(Jeu * jeu){
     }
 }
 
+int score_affichages(Jeu * jeu){
+    printf("Scores des joueurs :\n");
+    for (int i = 0; i < jeu->nb_joueurs; i++) {
+        printf("J%d : %d pts\n", i, jeu->joueur[i].score);
+    }
+    return 0;
+}
+
 // ---------------------------------------------------------------------------
 // Fonctions utilitaires et de vérification
 // ---------------------------------------------------------------------------
@@ -135,7 +143,7 @@ int jeu_capturer(Jeu *jeu, int i, int j){
             printf("Erreur : il n'y a pas de pion à capturer en (%d,%d) ! \n", i, j);
             return -1;
             break;
-    }  //1 si blanc, 2 si rouge et 3 si noir
+    }
     pl->pion[i][j] = 0; // La case devient vide
     return 0;
 }
@@ -171,22 +179,28 @@ int jeu_sauter_vers(Jeu * jeu, int i, int j){
     // mettre à jour la position du pion saisi
     jeu->pion_i = i;
     jeu->pion_j = j;
-
+    jeu->pion_est_saisi = 0;
+    jeu->pion_i = -1;
+    jeu->pion_j = -1;
     return 1;
 }
 
 // utilisée en début de tour pour saisir le pion permettant de faire des saut (par le joueur courant)
+// arg(Jeu * jeu) : pointeur vers la structure Jeu
+// Return 1 si le pion est saisi, 0 sinon
 int jeu_saisir_pion(Jeu *jeu, int i, int j){
-    do {
-        printf("Joueur %d ! Sélectionnez un pion à saisir (ligne colonne) : ", jeu->joueur_courant);
-        scanf("%d%d \n", &i, &j);
-    } while (!case_est_valide(i, j) && jeu->plateau.pion[i][j] != 0);
+    printf("Joueur %d ! Sélectionnez un pion à saisir (ligne colonne) : ", jeu->joueur_courant +1);
+    while (scanf("%d %d", &i, &j) != 2) {
+        if (!case_est_valide(i, j)){
+            break;
+        }
+    } 
     printf("Vous avez saisi le pion (%d,%d) \n", i, j);
     jeu->pion_est_saisi = 1;
     jeu->pion_i = i;
     jeu->pion_j = j;
-    // jeu_afficher(jeu);
-    // jeu_sauter_vers(jeu, i, j);
+    jeu_afficher(jeu);
+    jeu_sauter_vers(jeu, i, j);
     return 1;
 }
 
@@ -232,11 +246,11 @@ int jeu_arreter(Jeu *jeu){
     }
     if (count >=2){
         char reponse;
-        printf("Joueur %d, voulez-vous arrêter de jouer ? (o/n) : ", jeu->joueur_courant);
+        printf("Joueur %d, voulez-vous arrêter de jouer ? (o/n) : ", jeu->joueur_courant + 1);
         scanf(" %c", &reponse);
         if (reponse == 'o' || reponse == 'O'){
             jeu->joueur[jeu->joueur_courant].etat = 0;
-            printf("Le joueur %d a arrêté de jouer. \n", jeu->joueur_courant);
+            printf("Le joueur %d a arrêté de jouer. \n", jeu->joueur_courant +1);
             return 1;
         }
         printf("Il reste %d joueurs actifs. La partie continue. \n", count);
@@ -250,6 +264,9 @@ int jeu_arreter(Jeu *jeu){
 // arg(Jeu * jeu) : pointeur vers la structure Jeu
 // (Fonctionnelle en théorie.)
 int jeu_joueur_suivant(Jeu *jeu){
+    // Si aucun saut de pion n'est possible, endgame + joueur_courant pénalisé 
+    
+    // Gestion du prochain joueur
     if (jeu->joueur_courant < jeu->nb_joueurs){
         jeu->joueur_courant += 1;
     };
@@ -259,11 +276,13 @@ int jeu_joueur_suivant(Jeu *jeu){
     jeu->tour += 1;
 
     if(jeu_arreter(jeu)){
+        printf(RED "DEBUG - dans le if, appel de jeu_arreter" RESET);
         jeu->tour -= 1; 
-        jeu_joueur_suivant(jeu);
-    }; // Si le joueur courant veut arrêter de jouer.
-
-    // Verification du plateau ; si un pion peut être bougé ou non
+        // jeu_joueur_suivant(jeu);
+    }else{
+        return 0;
+    } // Si le joueur courant veut arrêter de jouer.
+    return 0;
 }
 
 
@@ -331,12 +350,14 @@ void intialiser_partie(Jeu * jeu){
 
 // ----- Fonctions de sauvegarde et chargement (Tests Platon)
 
-// Fonction chargant une partie depuis une classe Jeu.  arg(Jeu * jeu) : pointeur vers la structure Jeu à initialiser
+// Fonction chargant une partie depuis une classe Jeu.  
+// arg(Jeu * jeu) : pointeur vers la structure Jeu à initialiser
 void jeu_charger(Jeu *jeu){
     // ?? Y'a quoi à charger si t'as toute la struct ??
 }
 
-// Fonction sauvegardant une partie dans un fichier.  arg(Jeu * jeu) : pointeur vers la structure Jeu à sauvegarder
+// Fonction sauvegardant une partie dans un fichier. 
+// arg(Jeu * jeu) : pointeur vers la structure Jeu à sauvegarder
 void jeu_ecrire(Jeu *jeu){
     // Créer un fichier d'abord att
     FILE *fichier = fopen("sauvegard/save.txt", "w");
@@ -348,12 +369,41 @@ void jeu_ecrire(Jeu *jeu){
     fclose(fichier);
 }
 
+// Fonction vérifiant si la partie est finie ou non.
+// arg(Jeu * jeu) : pointeur vers la structure Jeu
+int endgame(Jeu * jeu){
+    // Vérifie s'il y a des options de saut restantes.
+    Plateau * pl = &(jeu->plateau);
+    for (int i = 0; i < TAILLE; i++){
+        for (int j = 0; j < TAILLE; j++){
+            if (plateau_pion_peut_sauter(pl, i, j)){
+                return 0; // Il reste un saut possible, la partie continue.
+            }
+        }
+    }
+    // Vérifie s'il reste un pion sur le plateau
+    int score_total = 34 + 20 * 5 + 10 * 8;
+    int joueurs_total = jeu->joueur->score;
+    for (int i = 0; i < jeu->nb_joueurs; i++){
+        joueurs_total += jeu->joueur[i].score;
+    }
+    if (joueurs_total >= score_total){
+        printf("La partie est terminée ! \n");
+        for (int i = 0; i < jeu->nb_joueurs; i++){
+            printf("Joueur %d : %d points \n", i + 1, jeu->joueur[i].score);
+        }
+        return 1;
+    }
+    return 0;
+}
+
 int main(void){
     Jeu jeu;
     intialiser_partie(&jeu);
     int i,j; //i et j stockent les coordonnées saisies par l'utilisateur
 
     // Phase initiale : chaque joueur retire un pion blanc et l'ajoute à son score.
+    printf("Phase initiale...");
     for (int p = 0; p < jeu.nb_joueurs; p++) {
         jeu.joueur_courant = p;
         jeu_afficher(&jeu);
@@ -376,10 +426,17 @@ int main(void){
     // } C'est bon !
 
     // Après que tous les joueurs ont retiré leur pion blanc, on passe au tour 2
+    printf("Phase initiale terminée. Que la partie commence ! \n");
     jeu.tour = 2;
     jeu.joueur_courant = 0;
 
     // boucle principale du jeu
-
+    while (!endgame(&jeu)) {
+        score_affichages(&jeu);
+        jeu_afficher(&jeu);
+        jeu_saisir_pion(&jeu, i, j);
+        options_sauts(&jeu, i, j);
+        jeu_joueur_suivant(&jeu);
+    }
     return 0;
 }
