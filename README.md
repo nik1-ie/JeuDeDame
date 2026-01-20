@@ -1,6 +1,6 @@
 # JeuDeDame
 ## Fichiers
-[Jeu Manue](multi_dames_manuels.c) - Fichier de Jeu jouable depuis le terminal <br>
+[Jeu Manuel](multi_dames_manuels.c) - Fichier de Jeu jouable depuis le terminal <br>
 [Jeu Platon](multi_dames.c) - Fichier de Jeu compatible avec l'activité Platon fournie
 
 
